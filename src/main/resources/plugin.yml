@@ -1,0 +1,14 @@
+name: TooManyEntities
+version: 0.1
+author: StarTux
+description: Scan for large clusters of entities
+main: com.winthier.toomanyentities.TooManyEntitiesPlugin
+commands:
+  TooManyEntities:
+    aliases: [ tme ]
+    description: command interface
+    permission: toomanyentities.toomanyentities
+permissions:
+  toomanyentities.toomanyentities:
+    description: Use the command
+    default: op
