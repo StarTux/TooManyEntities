@@ -17,172 +17,178 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class TooManyEntitiesTask extends BukkitRunnable
 {
-	TooManyEntitiesPlugin plugin;
-	private CommandSender sender;
-	private int limit;
-	private double radius;
-	private Player player;
-	private boolean exclude;
-	private int checksPerTick;
-	private LinkedList<Entity> entities = new LinkedList<Entity>();
-	private Set<Entity> findings = new HashSet<Entity>();
-	private EntityType type = null;
-	private LinkedList<EntityType> excluded_types = new LinkedList<EntityType>();
-	private boolean first = true;
-	private boolean found = false;
+    TooManyEntitiesPlugin plugin;
+    private CommandSender sender;
+    private int limit;
+    private double radius;
+    private Player player;
+    private boolean exclude;
+    private int checksPerTick;
+    private LinkedList<Entity> entities = new LinkedList<Entity>();
+    private Set<Entity> findings = new HashSet<Entity>();
+    private EntityType type = null;
+    private LinkedList<EntityType> excluded_types = new LinkedList<EntityType>();
+    private boolean first = true;
+    private boolean found = false;
+    private int currentIndex = 1;
 
-	public TooManyEntitiesTask(TooManyEntitiesPlugin plugin, CommandSender sender, double radius, int limit, EntityType type, boolean exclude, int checksPerTick)
-	{
-		this.plugin = plugin;
-		this.sender = sender;
-		this.limit = limit;
-		this.radius = radius;
-		this.type = type;
-		this.exclude = exclude;
-		this.checksPerTick = checksPerTick;
+    public TooManyEntitiesTask(TooManyEntitiesPlugin plugin, CommandSender sender, double radius, int limit, EntityType type, boolean exclude, int checksPerTick)
+    {
+        this.plugin = plugin;
+        this.sender = sender;
+        this.limit = limit;
+        this.radius = radius;
+        this.type = type;
+        this.exclude = exclude;
+        this.checksPerTick = checksPerTick;
+        this.player = sender instanceof Player ? (Player)sender : null;
 
-		if(exclude)
-		{
-			EntityType[] types = EntityType.values();
+        if(exclude)
+        {
+            EntityType[] types = EntityType.values();
 
-			for(int i = 0; i < types.length; i++)
-			{
-				if(!types[i].isAlive())
-					excluded_types.add(types[i]);
-			}
-		}
-	}
+            for(int i = 0; i < types.length; i++)
+            {
+                if(!types[i].isAlive())
+                    excluded_types.add(types[i]);
+            }
+        }
+    }
 
-	@Override
-	public void run()
-	{
-		if(first)
-		{
-			String s = "";
+    @Override
+    public void run()
+    {
+        if (player != null && !player.isValid()) return;
+        if(first)
+        {
+            String s = "";
 
-			s += "more than " + limit + " ";
+            s += "more than " + limit + " ";
 
-			if(type != null)
-				s += type.name().toLowerCase();
-			else
-				s += "entities";
+            if(type != null)
+                s += type.name().toLowerCase();
+            else
+                s += "entities";
 
-			s += " in a radius of " + radius;
+            s += " in a radius of " + radius;
 
-			if(exclude)
-				s+= ", excluding non-mobs";
+            if(exclude)
+                s+= ", excluding non-mobs";
 
-			sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - search result for " + s + ":");
+            sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - search result for " + s + ":");
 
-			first = false;
-		}
+            first = false;
+        }
 
-		for(int i = 0; i < checksPerTick; ++i)
-		{
-			if(entities.isEmpty())
-			{
-				if(!found)
-					sender.sendMessage(" " + ChatColor.WHITE + "Nothing found");
+        for(int i = 0; i < checksPerTick; ++i)
+        {
+            if(entities.isEmpty())
+            {
+                if(!found)
+                    sender.sendMessage(" " + ChatColor.WHITE + "Nothing found");
 
-				stop();
-				return;
-			}
-			else
-			{
-				Entity entity = entities.removeFirst();
+                stop();
+                return;
+            }
+            else
+            {
+                Entity entity = entities.removeFirst();
 
-				if(!entity.isValid())
-					continue;
+                if(!entity.isValid())
+                    continue;
 
-				if(findings.contains(entity))
-					continue;
+                if(findings.contains(entity))
+                    continue;
 
-				if(type != null && entity.getType() != type)
-					continue;
+                if(type != null && entity.getType() != type)
+                    continue;
 
-				List<Entity> tmp = entity.getNearbyEntities(radius, radius, radius);
-				List<Entity> nearby = new ArrayList<Entity>(tmp.size() + 1);
+                List<Entity> tmp = entity.getNearbyEntities(radius, radius, radius);
+                List<Entity> nearby = new ArrayList<Entity>(tmp.size() + 1);
 
-				for(Entity e : tmp)
-				{
-					boolean add = false;
+                for(Entity e : tmp)
+                {
+                    boolean add = false;
 
-					if(type == null || e.getType() == type)
-						add = true;
+                    if(type == null || e.getType() == type)
+                        add = true;
 
-					if(exclude && excluded_types.contains(e.getType()))
-						add = false;
+                    if(exclude && excluded_types.contains(e.getType()))
+                        add = false;
 
-					if(add)
-						nearby.add(e);
-				}
+                    if(add)
+                        nearby.add(e);
+                }
 
-				nearby.add(entity);
+                nearby.add(entity);
 
-				if(nearby.size() > limit)
-				{
-					report(nearby);
-					findings.add(entity);
-					findings.addAll(nearby);
-					found = true;
-				}
-			}
-		}
-	}
+                if(nearby.size() > limit)
+                {
+                    report(nearby);
+                    findings.add(entity);
+                    findings.addAll(nearby);
+                    found = true;
+                }
+            }
+        }
+    }
 	
-	public void report(List<Entity> entities)
-	{
-		Location loc = entities.get(0).getLocation();
-		EntityType top = null;
-		int max = 0;
-		EnumMap<EntityType, Integer> entityCount = new EnumMap<EntityType, Integer>(EntityType.class);
+    public void report(List<Entity> entities)
+    {
+        Location loc = entities.get(0).getLocation();
+        EntityType top = null;
+        int max = 0;
+        EnumMap<EntityType, Integer> entityCount = new EnumMap<EntityType, Integer>(EntityType.class);
 
-		for(Entity entity : entities)
-		{
-			int count = 1;
-			Integer tmp = entityCount.get(entity.getType());
+        for(Entity entity : entities)
+        {
+            int count = 1;
+            Integer tmp = entityCount.get(entity.getType());
 
-			if(tmp != null)
-				count = tmp + 1;
+            if(tmp != null)
+                count = tmp + 1;
 
-			entityCount.put(entity.getType(), count);
+            entityCount.put(entity.getType(), count);
 
-			if(count > max)
-			{
-				max = count;
-				top = entity.getType();
-				loc = entity.getLocation(loc);
-			}
-		}
+            if(count > max)
+            {
+                max = count;
+                top = entity.getType();
+                loc = entity.getLocation(loc);
+            }
+        }
 
-		sender.sendMessage(" " + ChatColor.WHITE + entities.size() + " found in " + ChatColor.LIGHT_PURPLE + loc.getWorld().getName() + " " + ChatColor.WHITE + "at " + ChatColor.GREEN + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + " " + ChatColor.WHITE + "(mostly " + niceEntityName(top) + ")");
-	}
+        sender.sendMessage(" " + ChatColor.YELLOW + currentIndex++ + ") " + ChatColor.WHITE + entities.size() + " found at " + ChatColor.GREEN + loc.getWorld().getName() + ", " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " " + ChatColor.WHITE + "(" + niceEntityName(top) + ")");
+        if (player != null) {
+            plugin.storeSession(player, loc);
+        }
+    }
 
-	public void init()
-	{
-		for(World world : plugin.getServer().getWorlds())
-		{
-			entities.addAll(world.getEntities());
-		}
-	}
+    public void init()
+    {
+        for(World world : plugin.getServer().getWorlds())
+        {
+            entities.addAll(world.getEntities());
+        }
+    }
 
-	public void start()
-	{
-		runTaskTimer(plugin, 0L, 1L);
-	}
+    public void start()
+    {
+        runTaskTimer(plugin, 0L, 1L);
+    }
 
-	public void stop()
-	{
-		try
-		{
-			cancel();
-		}
-		catch(Exception e)
-		{}
-	}
+    public void stop()
+    {
+        try
+        {
+            cancel();
+        }
+        catch(Exception e)
+        {}
+    }
 
-	private static String niceEntityName(EntityType e)
-	{
-		return e.name().toLowerCase().replaceAll("_", " ");
-	}
+    private static String niceEntityName(EntityType e)
+    {
+        return e.name().toLowerCase().replaceAll("_", " ");
+    }
 }

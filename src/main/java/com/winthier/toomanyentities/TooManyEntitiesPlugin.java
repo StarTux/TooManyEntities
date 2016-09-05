@@ -1,40 +1,49 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Copyright 2012 StarTux
- *
- * This file is part of TooManyEntities.
- *
- * TooManyEntities is free software: you can redistribute it
- * and/or modify it under the terms of the GNU General Public
- * License as published by the Free Software Foundation, either
- * version 3 of the License, or (at your option) any later
- * version.
- *
- * TooManyEntities is distributed in the hope that it will be
- * useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- * PURPOSE.  See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public
- * License along with TooManyEntities.  If not, see
- * <http://www.gnu.org/licenses/>.
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 package com.winthier.toomanyentities;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import lombok.Value;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class TooManyEntitiesPlugin extends JavaPlugin
 {
+    @Value static class Entry {
+        String world;
+        double x, y ,z;
+        Location getLocation(Player player) {
+            World world = Bukkit.getServer().getWorld(this.world);
+            if (world == null) return null;
+            Location loc = player.getLocation();
+            loc.setWorld(world);
+            loc.setX(x);
+            loc.setY(y);
+            loc.setZ(z);
+            return loc;
+        }
+    }
+    @Value static class Session {
+        List<Entry> entries = new ArrayList<>();
+    }
+
+    private final Map<UUID, Session> sessions = new HashMap<>();
+    
     @Override
     public boolean onCommand(CommandSender sender, Command command, String token, String args[])
     {
+        Player player = sender instanceof Player ? (Player)sender : null;
         if(args.length == 0)
         {
             sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - commands:");
@@ -43,6 +52,7 @@ public class TooManyEntitiesPlugin extends JavaPlugin
             sender.sendMessage(" " + ChatColor.AQUA + "/tme sweep" + ChatColor.WHITE + " - sweeps all unneeded mobs");
             sender.sendMessage(" " + ChatColor.AQUA + "/tme types" + ChatColor.WHITE + " - shows a list of valid entity types");
             sender.sendMessage(" " + ChatColor.AQUA + "/tme scan <parameters>");
+            sender.sendMessage(" " + ChatColor.AQUA + "/tme tp <index>");
             sender.sendMessage(" " + ChatColor.WHITE + "Parameters:");
             sender.sendMessage(" " + ChatColor.AQUA + "r:" + ChatColor.GREEN + "<radius>" + ChatColor.WHITE + " - radius of the search (defaults to 1)");
             sender.sendMessage(" " + ChatColor.AQUA + "l:" + ChatColor.GREEN + "<limit>" + ChatColor.WHITE + " - only report occurrences of more than this amount (defaults to 100)");
@@ -128,10 +138,38 @@ public class TooManyEntitiesPlugin extends JavaPlugin
                     return true;
                 }
 
+                if (player != null) sessions.remove(player.getUniqueId());
                 TooManyEntitiesTask task = new TooManyEntitiesTask(this, sender, param_radius, param_limit, param_type, param_exclude, 300);
                 task.init();
                 task.start();
                 return true;
+            }
+            else if(param_command.equals("tp"))
+            {
+                if (player == null) {
+                    sender.sendMessage("Player expected.");
+                    return true;
+                }
+                if (args.length != 2) return false;
+                int index;
+                try {
+                    index = Integer.parseInt(args[1]);
+                } catch (NumberFormatException nfe) {
+                    index = -1;
+                }
+                if (index <= 0) return false;
+                Session session = getSession(player);
+                if (session.getEntries().size() <= index - 1) {
+                    player.sendMessage(ChatColor.RED + "Index out of bounds.");
+                    return true;
+                }
+                Location loc = session.getEntries().get(index - 1).getLocation(player);
+                if (loc == null) {
+                    player.sendMessage(ChatColor.RED + "Could not find location. Was the world unloaded?");
+                    return true;
+                }
+                player.teleport(loc);
+                player.sendMessage(ChatColor.YELLOW + "Teleported to finding #" + index);
             }
             else if(param_command.equals("sweep"))
             {
@@ -230,5 +268,18 @@ public class TooManyEntitiesPlugin extends JavaPlugin
     public static void msg(CommandSender sender, String msg, Object... args) {
         msg = format(msg, args);
         sender.sendMessage(msg);
+    }
+
+    Session getSession(Player player) {
+        Session result = sessions.get(player.getUniqueId());
+        if (result == null) {
+            result = new Session();
+            sessions.put(player.getUniqueId(), result);
+        }
+        return result;
+    }
+
+    void storeSession(Player player, Location location) {
+        getSession(player).getEntries().add(new Entry(location.getWorld().getName(), location.getX(), location.getY(), location.getZ()));
     }
 }
