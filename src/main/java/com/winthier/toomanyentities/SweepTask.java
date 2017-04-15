@@ -59,11 +59,9 @@ public class SweepTask extends BukkitRunnable {
                     for (int j = 0; j < SIZE; ++j) {
                         final ItemStack item = items[j];
                         final float chance = chances[j];
-                        if (chance > 0.0f && item != null && item.getType() != Material.AIR) {
-                            if (random.nextFloat() <= chance) {
-                                final Location loc = monster.getLocation();
-                                loc.getWorld().dropItemNaturally(loc, item.clone());
-                            }
+                        if (chance >= 0.99f && item != null && item.getType() != Material.AIR) {
+                            final Location loc = monster.getLocation();
+                            loc.getWorld().dropItemNaturally(loc, item.clone());
                         }
                     }
                 }
