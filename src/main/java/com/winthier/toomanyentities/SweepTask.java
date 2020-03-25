@@ -13,7 +13,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public class SweepTask extends BukkitRunnable {
+public final class SweepTask extends BukkitRunnable {
     private final TooManyEntitiesPlugin plugin;
     private final CommandSender sender;
     private final int monstersPerTick;

@@ -39,6 +39,7 @@
 
   </dependencies>
   <build>
+    <finalName>${project.name}</finalName>
     <plugins>
 
       <!-- Java 8 -->

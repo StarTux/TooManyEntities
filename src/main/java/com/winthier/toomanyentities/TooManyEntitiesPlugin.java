@@ -1,15 +1,16 @@
 package com.winthier.toomanyentities;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.Value;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,16 +19,19 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class TooManyEntitiesPlugin extends JavaPlugin
-{
-    @Value static class Entry {
+public final class TooManyEntitiesPlugin extends JavaPlugin {
+    @Value
+    static class Entry {
         String world;
-        double x, y ,z;
+        double x;
+        double y;
+        double z;
+
         Location getLocation(Player player) {
-            World world = Bukkit.getServer().getWorld(this.world);
-            if (world == null) return null;
+            World w = Bukkit.getServer().getWorld(world);
+            if (w == null) return null;
             Location loc = player.getLocation();
-            loc.setWorld(world);
+            loc.setWorld(w);
             loc.setX(x);
             loc.setY(y);
             loc.setZ(z);
@@ -39,20 +43,18 @@ public class TooManyEntitiesPlugin extends JavaPlugin
     }
 
     private final Map<UUID, Session> sessions = new HashMap<>();
-    
+
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String token, String args[])
-    {
-        Player player = sender instanceof Player ? (Player)sender : null;
-        if(args.length == 0)
-        {
+    public boolean onCommand(CommandSender sender, Command command, String token, String[] args) {
+        Player player = sender instanceof Player ? (Player) sender : null;
+        if (args.length == 0) {
             sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - commands:");
-            sender.sendMessage(" " + ChatColor.AQUA + "/tme count" + ChatColor.WHITE + " - shows a count of all entities in all worlds");
-            sender.sendMessage(" " + ChatColor.AQUA + "/tme rank <radius>" + ChatColor.WHITE + " - Rank players by nearby mobs");
             sender.sendMessage(" " + ChatColor.AQUA + "/tme sweep" + ChatColor.WHITE + " - sweeps all unneeded mobs");
-            sender.sendMessage(" " + ChatColor.AQUA + "/tme types" + ChatColor.WHITE + " - shows a list of valid entity types");
             sender.sendMessage(" " + ChatColor.AQUA + "/tme scan <parameters>");
             sender.sendMessage(" " + ChatColor.AQUA + "/tme tp <index>");
+            sender.sendMessage(" " + ChatColor.AQUA + "/tme worlds" + ChatColor.WHITE + " - Count entities in worlds");
+            sender.sendMessage(" " + ChatColor.AQUA + "/tme entities" + ChatColor.WHITE + " - Count entity types");
+            sender.sendMessage(" " + ChatColor.AQUA + "/tme players <radius>" + ChatColor.WHITE + " - Count mobs near players");
             sender.sendMessage(" " + ChatColor.WHITE + "Parameters:");
             sender.sendMessage(" " + ChatColor.AQUA + "r:" + ChatColor.GREEN + "<radius>" + ChatColor.WHITE + " - radius of the search (defaults to 1)");
             sender.sendMessage(" " + ChatColor.AQUA + "l:" + ChatColor.GREEN + "<limit>" + ChatColor.WHITE + " - only report occurrences of more than this amount (defaults to 100)");
@@ -60,92 +62,66 @@ public class TooManyEntitiesPlugin extends JavaPlugin
             sender.sendMessage(" " + ChatColor.AQUA + "-e" + ChatColor.WHITE + " - exclude non-mobs (can't be used with the type parameter");
         }
 
-        if(args.length > 0)
-        {
-            String param_command = args[0].trim();
+        if (args.length > 0) {
+            String paramCommand = args[0].trim();
 
-            if(param_command.equals("scan"))
-            {
-                double param_radius = 1.0;
-                int param_limit = 100;
-                EntityType param_type = null;
-                boolean param_exclude = false;
+            if (paramCommand.equals("scan")) {
+                double paramRadius = 1.0;
+                int paramLimit = 100;
+                EntityType paramType = null;
+                boolean paramExclude = false;
 
-                for(int i = 1; i < args.length; i++)
-                {
-                    if(args[i].startsWith("r:"))
-                    {
-                        try
-                        {
-                            param_radius = Double.parseDouble(getParameterInput(args[i]));
-                        }
-                        catch(NumberFormatException nfe)
-                        {
+                for (int i = 1; i < args.length; i++) {
+                    if (args[i].startsWith("r:")) {
+                        try {
+                            paramRadius = Double.parseDouble(getParameterInput(args[i]));
+                        } catch (NumberFormatException nfe) {
                             sender.sendMessage("" + ChatColor.RED + "Invalid input for radius, number expected: " + getParameterInput(args[i]));
                             return true;
                         }
 
-                        if(param_radius < 0.0)
-                        {
+                        if (paramRadius < 0.0) {
                             sender.sendMessage("" + ChatColor.RED + "Invalid input for radius, positive number expected: " + getParameterInput(args[i]));
                             return true;
                         }
-                    }
-                    else if(args[i].startsWith("l:"))
-                    {
-                        try
-                        {
-                            param_limit = Integer.parseInt(getParameterInput(args[i]));
-                        }
-                        catch(NumberFormatException nfe)
-                        {
+                    } else if (args[i].startsWith("l:")) {
+                        try {
+                            paramLimit = Integer.parseInt(getParameterInput(args[i]));
+                        } catch (NumberFormatException nfe) {
                             sender.sendMessage("" + ChatColor.RED + "Invalid input for limit, number expected: " + getParameterInput(args[i]));
                             return true;
                         }
 
-                        if(param_limit < 1)
-                        {
+                        if (paramLimit < 1) {
                             sender.sendMessage("" + ChatColor.RED + "Invalid input for limit, positive number larger than 0 expected: " + getParameterInput(args[i]));
                             return true;
                         }
-                    }
-                    else if(args[i].trim().equals("-e"))
-                    {
-                        param_exclude = true;
-                    }
-                    else if(args[i].startsWith("t:"))
-                    {
-                        try
-                        {
-                            param_type = EntityType.valueOf(getParameterInput(args[i]).toUpperCase().replaceAll("-", "_"));
-                        }
-                        catch(IllegalArgumentException iae)
-                        {
+                    } else if (args[i].trim().equals("-e")) {
+                        paramExclude = true;
+                    } else if (args[i].startsWith("t:")) {
+                        try {
+                            paramType = EntityType.valueOf(getParameterInput(args[i]).toUpperCase().replaceAll("-", "_"));
+                        } catch (IllegalArgumentException iae) {
                             sender.sendMessage("" + ChatColor.RED + "Invalid input for type: " + getParameterInput(args[i]));
                             return true;
                         }
-                    }
-                    else
-                    {
+                    } else {
                         sender.sendMessage("" + ChatColor.RED + "Unknown parameter: " + getParameterInput(args[i]));
                         return true;
                     }
                 }
 
-                if(param_type != null && param_exclude)
-                {
+                if (paramType != null && paramExclude) {
                     sender.sendMessage("" + ChatColor.RED + "Can't use exclude option and type parameter at the same time");
                     return true;
                 }
 
                 if (player != null) sessions.remove(player.getUniqueId());
-                TooManyEntitiesTask task = new TooManyEntitiesTask(this, sender, param_radius, param_limit, param_type, param_exclude, 300);
+                TooManyEntitiesTask task = new TooManyEntitiesTask(this, sender, paramRadius, paramLimit, paramType, paramExclude, 300);
                 task.init();
                 task.start();
                 return true;
-            }
-            else if(param_command.equals("tp"))
-            {
+            } else if (paramCommand.equals("tp")) {
                 if (player == null) {
                     sender.sendMessage("Player expected.");
                     return true;
@@ -170,39 +146,15 @@ public class TooManyEntitiesPlugin extends JavaPlugin
                 }
                 player.teleport(loc);
                 player.sendMessage(ChatColor.YELLOW + "Teleported to finding #" + index);
-            }
-            else if(param_command.equals("sweep"))
-            {
+            } else if (paramCommand.equals("sweep")) {
                 SweepTask task = new SweepTask(this, sender, 500);
                 task.init();
                 task.start();
                 return true;
-            }
-            else if(param_command.equals("types"))
-            {
-                sender.sendMessage("" + ChatColor.WHITE + "Available entity types:");
-
-                EntityType[] types = EntityType.values();
-                String list = "";
-
-                for(int i = 0; i < types.length; i++)
-                {
-                    list += types[i].name();
-
-                    if(i + 1 < types.length)
-                        list += ", ";
-                }
-
-                sender.sendMessage(" " + ChatColor.WHITE + list);
-
-                return true;
-            }
-            else if(param_command.equals("count"))
-            {
+            } else if (paramCommand.equals("worlds")) {
                 sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - scanning...");
 
-                for(World world : this.getServer().getWorlds())
-                {
+                for (World world : getServer().getWorlds()) {
                     List<Entity> e = world.getEntities();
                     sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + world.getName() + " " + ChatColor.WHITE + e.size() + " entities");
                 }
@@ -210,9 +162,7 @@ public class TooManyEntitiesPlugin extends JavaPlugin
                 sender.sendMessage("" + ChatColor.YELLOW + "Done.");
 
                 return true;
-            }
-            else if (args.length >= 1 && args.length <= 2 && "Rank".equalsIgnoreCase(args[0]))
-            {
+            } else if (args.length >= 1 && args.length <= 2 && "players".equals(args[0])) {
                 int radius = 2;
                 if (args.length >= 2) {
                     String radiusArg = args[1];
@@ -235,10 +185,29 @@ public class TooManyEntitiesPlugin extends JavaPlugin
                     msg(sender, " &6%d&r %s", ranking.count, ranking.name);
                 }
                 return true;
-            }
-            else
-            {
-                sender.sendMessage("" + ChatColor.RED + "Unknown command: " + param_command);
+            } else if (args.length == 1 && "entities".equals(args[0])) {
+                EnumMap<EntityType, Integer> map = new EnumMap<>(EntityType.class);
+                for (EntityType type : EntityType.values()) {
+                    map.put(type, 0);
+                }
+                for (World world : getServer().getWorlds()) {
+                    for (Entity entity : world.getEntities()) {
+                        EntityType type = entity.getType();
+                        int count = map.get(type);
+                        map.put(type, count + 1);
+                    }
+                }
+                List<EntityType> entities = map.keySet().stream()
+                    .filter(et -> map.get(et) > 0)
+                    .sorted((a, b) -> Integer.compare(map.get(a), map.get(b)))
+                    .collect(Collectors.toList());
+                sender.sendMessage("Listing " + entities.size() + " entity types:");
+                for (int i = 0; i < entities.size(); i += 1) {
+                    EntityType type = entities.get(i);
+                    sender.sendMessage(map.get(type) + " " + type.name().toLowerCase());
+                }
+            } else {
+                sender.sendMessage("" + ChatColor.RED + "Unknown command: " + paramCommand);
                 return true;
             }
         }
@@ -246,10 +215,10 @@ public class TooManyEntitiesPlugin extends JavaPlugin
         return false;
     }
 
-    private String getParameterInput(String s)
-    {
-        if(s.isEmpty())
+    private String getParameterInput(String s) {
+        if (s.isEmpty()) {
             return "";
+        }
 
         s = s.replace("p:", "");
         s = s.replace("l:", "");
