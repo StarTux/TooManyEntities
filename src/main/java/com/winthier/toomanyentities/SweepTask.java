@@ -20,7 +20,8 @@ public final class SweepTask extends BukkitRunnable {
     private final LinkedList<Monster> monsters = new LinkedList<Monster>();
     private final Random random = new Random(System.currentTimeMillis());
 
-    public SweepTask(TooManyEntitiesPlugin plugin, CommandSender sender, int monstersPerTick) {
+    public SweepTask(final TooManyEntitiesPlugin plugin, final CommandSender sender,
+                     final int monstersPerTick) {
         this.plugin = plugin;
         this.sender = sender;
         this.monstersPerTick = monstersPerTick;
@@ -28,8 +29,8 @@ public final class SweepTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        for(int i = 0; i < monstersPerTick; ++i) {
-            if(monsters.isEmpty()) {
+        for (int i = 0; i < monstersPerTick; ++i) {
+            if (monsters.isEmpty()) {
                 stop();
                 return;
             } else {
@@ -43,9 +44,9 @@ public final class SweepTask extends BukkitRunnable {
                 // drop equipment
                 final EntityEquipment equipment = monster.getEquipment();
                 if (equipment != null) {
-                    final int SIZE = 5;
-                    ItemStack[] items = new ItemStack[SIZE];
-                    float[] chances = new float[SIZE];
+                    final int size = 5;
+                    ItemStack[] items = new ItemStack[size];
+                    float[] chances = new float[size];
                     items[0] = equipment.getItemInHand();
                     chances[0] = equipment.getItemInHandDropChance();
                     items[1] = equipment.getHelmet();
@@ -56,7 +57,7 @@ public final class SweepTask extends BukkitRunnable {
                     chances[3] = equipment.getLeggingsDropChance();
                     items[4] = equipment.getBoots();
                     chances[4] = equipment.getBootsDropChance();
-                    for (int j = 0; j < SIZE; ++j) {
+                    for (int j = 0; j < size; ++j) {
                         final ItemStack item = items[j];
                         final float chance = chances[j];
                         if (chance >= 0.99f && item != null && item.getType() != Material.AIR) {
@@ -73,11 +74,10 @@ public final class SweepTask extends BukkitRunnable {
 
     public void init() {
         sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - sweeping monsters...");
-
-        for(World world : plugin.getServer().getWorlds())
-        {
+        for (World world : plugin.getServer().getWorlds()) {
             Collection<Monster> e = world.getEntitiesByClass(Monster.class);
-            sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + world.getName() + " " + ChatColor.WHITE + e.size() + " monsters");
+            sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + world.getName()
+                               + " " + ChatColor.WHITE + e.size() + " monsters");
             monsters.addAll(e);
         }
     }
@@ -89,11 +89,8 @@ public final class SweepTask extends BukkitRunnable {
     public void stop() {
         sender.sendMessage("" + ChatColor.YELLOW + "Done.");
 
-        try
-        {
+        try {
             cancel();
-        }
-        catch(Exception e)
-        {}
+        } catch (Exception e) { }
     }
 }

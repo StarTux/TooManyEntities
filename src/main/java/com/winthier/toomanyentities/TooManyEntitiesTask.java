@@ -31,9 +31,10 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
     private boolean found = false;
     private int currentIndex = 1;
 
-    public TooManyEntitiesTask(TooManyEntitiesPlugin plugin, CommandSender sender,
-                               double radius, int limit,
-                               EntityType type, boolean exclude, int checksPerTick) {
+    public TooManyEntitiesTask(final TooManyEntitiesPlugin plugin, final CommandSender sender,
+                               final double radius, final int limit,
+                               final EntityType type, final boolean exclude,
+                               final int checksPerTick) {
         this.plugin = plugin;
         this.sender = sender;
         this.limit = limit;
@@ -62,18 +63,17 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
 
             s += "more than " + limit + " ";
 
-            if (type != null)
+            if (type != null) {
                 s += type.name().toLowerCase();
-            else
+            } else {
                 s += "entities";
-
+            }
             s += " in a radius of " + radius;
-
-            if (exclude)
-                s+= ", excluding non-mobs";
-
-            sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - search result for " + s + ":");
-
+            if (exclude) {
+                s += ", excluding non-mobs";
+            }
+            sender.sendMessage(ChatColor.YELLOW
+                               + "Too Many Entities - search result for " + s + ":");
             first = false;
         }
 
@@ -86,34 +86,24 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
                 return;
             } else {
                 Entity entity = entities.removeFirst();
-
-                if (!entity.isValid())
-                    continue;
-
-                if (findings.contains(entity))
-                    continue;
-
-                if (type != null && entity.getType() != type)
-                    continue;
-
+                if (!entity.isValid()) continue;
+                if (findings.contains(entity)) continue;
+                if (type != null && entity.getType() != type) continue;
                 List<Entity> tmp = entity.getNearbyEntities(radius, radius, radius);
                 List<Entity> nearby = new ArrayList<Entity>(tmp.size() + 1);
-
                 for (Entity e : tmp) {
                     boolean add = false;
-
-                    if (type == null || e.getType() == type)
+                    if (type == null || e.getType() == type) {
                         add = true;
-
-                    if (exclude && excludedTypes.contains(e.getType()))
+                    }
+                    if (exclude && excludedTypes.contains(e.getType())) {
                         add = false;
-
-                    if (add)
+                    }
+                    if (add) {
                         nearby.add(e);
+                    }
                 }
-
                 nearby.add(entity);
-
                 if (nearby.size() > limit) {
                     report(nearby);
                     findings.add(entity);
@@ -123,32 +113,35 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
             }
         }
     }
-	
-    public void report(List<Entity> entities) {
-        Location loc = entities.get(0).getLocation();
+
+    public void report(List<Entity> list) {
+        Location loc = list.get(0).getLocation();
         EntityType top = null;
         int max = 0;
-        EnumMap<EntityType, Integer> entityCount = new EnumMap<EntityType, Integer>(EntityType.class);
-
-        for (Entity entity : entities) {
+        EnumMap<EntityType, Integer> entityCount = new EnumMap<>(EntityType.class);
+        for (Entity entity : list) {
             int count = 1;
             Integer tmp = entityCount.get(entity.getType());
-
-            if (tmp != null)
+            if (tmp != null) {
                 count = tmp + 1;
-
+            }
             entityCount.put(entity.getType(), count);
-
             if (count > max) {
                 max = count;
                 top = entity.getType();
                 loc = entity.getLocation(loc);
             }
         }
-
-        sender.sendMessage(" " + ChatColor.YELLOW + currentIndex++ + ") " + ChatColor.WHITE + entities.size() + " found at " + ChatColor.GREEN + loc.getWorld().getName() + ", " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " " + ChatColor.WHITE + "(" + niceEntityName(top) + ")");
+        sender.sendMessage(" " + ChatColor.YELLOW + currentIndex++ + ") "
+                           + ChatColor.WHITE + list.size() + " found at "
+                           + ChatColor.GREEN + loc.getWorld().getName() + " "
+                           + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ()
+                           + " " + ChatColor.WHITE + "(" + Msg.niceEntityName(top) + ")");
         if (player != null) {
-            plugin.storeSession(player, loc);
+            Session.Entry entry = new Session
+                .Entry(loc.getWorld().getName(),
+                       loc.getX(), loc.getY(), loc.getZ());
+            plugin.metadata.sessionOf(player).getEntries().add(entry);
         }
     }
 
@@ -165,10 +158,6 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
     public void stop() {
         try {
             cancel();
-        } catch(Exception e) { }
-    }
-
-    private static String niceEntityName(EntityType e) {
-        return e.name().toLowerCase().replaceAll("_", " ");
+        } catch (Exception e) { }
     }
 }

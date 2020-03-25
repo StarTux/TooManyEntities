@@ -8,11 +8,11 @@ import org.bukkit.Chunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-class Ranking implements Comparable<Ranking> {
+public final class Ranking implements Comparable<Ranking> {
     public final String name;
     public final int count;
 
-    public Ranking(String name, int count) {
+    Ranking(final String name, final int count) {
         this.name = name;
         this.count = count;
     }
