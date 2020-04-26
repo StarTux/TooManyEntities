@@ -77,6 +77,12 @@ public final class TMECommand implements TabExecutor {
                                        + getParameterInput(args[i]));
                     return true;
                 }
+                if (paramRadius > 100.0) {
+                    sender.sendMessage(ChatColor.RED
+                                       + "Radius too large: "
+                                       + paramRadius);
+                    return true;
+                }
             } else if (args[i].startsWith("l:")) {
                 try {
                     paramLimit = Integer.parseInt(getParameterInput(args[i]));
