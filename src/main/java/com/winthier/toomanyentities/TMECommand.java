@@ -1,5 +1,6 @@
 package com.winthier.toomanyentities;
 
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -209,12 +211,23 @@ public final class TMECommand implements TabExecutor {
     }
 
     boolean entitiesCommand(CommandSender sender, String[] args) {
-        if (args.length != 1) return false;
+        if (args.length != 1 && args.length != 2) return false;
         EnumMap<EntityType, Integer> map = new EnumMap<>(EntityType.class);
         for (EntityType type : EntityType.values()) {
             map.put(type, 0);
         }
-        for (World world : plugin.getServer().getWorlds()) {
+        List<World> worlds;
+        if (args.length >= 2) {
+            World world = Bukkit.getWorld(args[1]);
+            if (world == null) {
+                sender.sendMessage(ChatColor.RED + "World not found: " + args[1]);
+                return true;
+            }
+            worlds = Arrays.asList(world);
+        } else {
+            worlds = plugin.getServer().getWorlds();
+        }
+        for (World world : worlds) {
             for (Entity entity : world.getEntities()) {
                 EntityType type = entity.getType();
                 int count = map.get(type);
@@ -253,7 +266,7 @@ public final class TMECommand implements TabExecutor {
         sender.sendMessage(" " + aq
                            + "/tme worlds" + rs + " - Count entities in worlds");
         sender.sendMessage(" " + aq
-                           + "/tme entities" + rs + " - Count entity types");
+                           + "/tme entities [world]" + rs + " - Count entity types");
         sender.sendMessage(" " + aq
                            + "/tme players <radius>" + rs + " - Count mobs near players");
         sender.sendMessage(" " + rs + "Parameters:");
