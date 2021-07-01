@@ -216,7 +216,7 @@ public final class TMECommand implements TabExecutor {
         if (args.length != 1) return false;
         int count = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.isGliding()) return false;
+            if (!player.isGliding()) continue;
             Location location = player.getLocation();
             Vector velo = player.getVelocity();
             sender.sendMessage(player.getName() + " "
