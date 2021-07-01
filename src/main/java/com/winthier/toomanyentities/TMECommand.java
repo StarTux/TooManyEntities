@@ -18,6 +18,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 @RequiredArgsConstructor
 public final class TMECommand implements TabExecutor {
@@ -37,7 +38,7 @@ public final class TMECommand implements TabExecutor {
         if (args.length == 0) return null;
         String cmd = args[0];
         if (args.length == 1) {
-            return tab(cmd, Stream.of("scan", "sweep", "tp", "worlds", "entities", "players"));
+            return tab(cmd, Stream.of("scan", "sweep", "tp", "worlds", "entities", "players", "elytra"));
         }
         return null;
     }
@@ -51,6 +52,7 @@ public final class TMECommand implements TabExecutor {
         case "worlds": return worldsCommand(sender, args);
         case "players": return playersCommand(sender, args);
         case "entities": return entitiesCommand(sender, args);
+        case "elytra": return elytraCommand(sender, args);
         default: {
             sender.sendMessage("" + ChatColor.RED + "Unknown command: " + args[0]);
             return true;
@@ -210,6 +212,25 @@ public final class TMECommand implements TabExecutor {
         return true;
     }
 
+    boolean elytraCommand(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        int count = 0;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.isGliding()) return false;
+            Location location = player.getLocation();
+            Vector velo = player.getVelocity();
+            sender.sendMessage(player.getName() + " "
+                               + location.getWorld().getName()
+                               + " " + location.getBlockX()
+                               + " " + location.getBlockY()
+                               + " " + location.getBlockZ()
+                               + " velocity=" + velo.length());
+            count += 1;
+        }
+        sender.sendMessage("Total " + count + " elytra flyers");
+        return true;
+    }
+
     boolean entitiesCommand(CommandSender sender, String[] args) {
         if (args.length != 1 && args.length != 2) return false;
         EnumMap<EntityType, Integer> map = new EnumMap<>(EntityType.class);
@@ -269,6 +290,8 @@ public final class TMECommand implements TabExecutor {
                            + "/tme entities [world]" + rs + " - Count entity types");
         sender.sendMessage(" " + aq
                            + "/tme players <radius>" + rs + " - Count mobs near players");
+        sender.sendMessage(" " + aq
+                           + "/tme elytra" + rs + " - See who's flying with elytra");
         sender.sendMessage(" " + rs + "Parameters:");
         sender.sendMessage(" " + aq + "r:" + ChatColor.GREEN + "<radius>"
                            + rs + " - radius of the search (defaults to 1)");
