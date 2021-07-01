@@ -213,7 +213,7 @@ public final class TMECommand implements TabExecutor {
     }
 
     boolean elytraCommand(CommandSender sender, String[] args) {
-        if (args.length != 0) return false;
+        if (args.length != 1) return false;
         int count = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!player.isGliding()) return false;
