@@ -43,7 +43,7 @@ public final class TMECommand implements TabExecutor {
         }
         if (args.length == 2 && args[0].equals("nogoal")) {
             return tab(args[1], Stream.of(EntityType.values())
-                       .filter(e -> Mob.class.isAssignableFrom(e.getEntityClass()))
+                       .filter(e -> e.getEntityClass() != null && Mob.class.isAssignableFrom(e.getEntityClass()))
                        .map(Enum::name).map(String::toLowerCase));
         }
         return null;
@@ -283,8 +283,10 @@ public final class TMECommand implements TabExecutor {
         } catch (IllegalArgumentException iae) {
             entityType = null;
         }
-        if (entityType == null || !Mob.class.isAssignableFrom(entityType.getEntityClass())) {
+        if (entityType == null || entityType.getEntityClass() == null
+            || !Mob.class.isAssignableFrom(entityType.getEntityClass())) {
             sender.sendMessage("Invalid entity type: " + args[1]);
+            return true;
         }
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
