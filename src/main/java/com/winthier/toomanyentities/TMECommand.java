@@ -17,6 +17,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -38,7 +39,12 @@ public final class TMECommand implements TabExecutor {
         if (args.length == 0) return null;
         String cmd = args[0];
         if (args.length == 1) {
-            return tab(cmd, Stream.of("scan", "sweep", "tp", "worlds", "entities", "players", "elytra"));
+            return tab(cmd, Stream.of("scan", "sweep", "tp", "worlds", "entities", "players", "elytra", "nogoal"));
+        }
+        if (args.length == 2 && args[0].equals("nogoal")) {
+            return tab(args[1], Stream.of(EntityType.values())
+                       .filter(e -> Mob.class.isAssignableFrom(e.getEntityClass()))
+                       .map(Enum::name).map(String::toLowerCase));
         }
         return null;
     }
@@ -49,6 +55,7 @@ public final class TMECommand implements TabExecutor {
         case "scan": return scanCommand(sender, args);
         case "tp": return tpCommand(sender, args);
         case "sweep": return sweepCommand(sender, args);
+        case "nogoal": return noGoalCommand(sender, args);
         case "worlds": return worldsCommand(sender, args);
         case "players": return playersCommand(sender, args);
         case "entities": return entitiesCommand(sender, args);
@@ -268,6 +275,30 @@ public final class TMECommand implements TabExecutor {
         return true;
     }
 
+    boolean noGoalCommand(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        EntityType entityType;
+        try {
+            entityType = EntityType.valueOf(args[1].toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            entityType = null;
+        }
+        if (entityType == null || !Mob.class.isAssignableFrom(entityType.getEntityClass())) {
+            sender.sendMessage("Invalid entity type: " + args[1]);
+        }
+        int count = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity.getType() != entityType) continue;
+                if (!(entity instanceof Mob)) continue;
+                Mob mob = (Mob) entity;
+                Bukkit.getMobGoals().removeAllGoals(mob);
+                count += 1;
+            }
+        }
+        sender.sendMessage("Cleared goals of " + count + "x" + entityType);
+        return true;
+    }
 
     List<String> tab(String cmd, Stream<String> args) {
         return args.filter(arg -> arg.startsWith(cmd))
@@ -292,6 +323,8 @@ public final class TMECommand implements TabExecutor {
                            + "/tme players <radius>" + rs + " - Count mobs near players");
         sender.sendMessage(" " + aq
                            + "/tme elytra" + rs + " - See who's flying with elytra");
+        sender.sendMessage(" " + aq
+                           + "/tme nogoal <type>" + rs + " - Clear mob goals");
         sender.sendMessage(" " + rs + "Parameters:");
         sender.sendMessage(" " + aq + "r:" + ChatColor.GREEN + "<radius>"
                            + rs + " - radius of the search (defaults to 1)");
