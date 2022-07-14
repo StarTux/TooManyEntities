@@ -2,7 +2,7 @@ main: com.winthier.toomanyentities.TooManyEntitiesPlugin
 name: TooManyEntities
 
 version: 0.1
-api-version: 1.17
+api-version: 1.19
 
 author: StarTux
 description: Scan for large clusters of entities
@@ -10,7 +10,7 @@ description: Scan for large clusters of entities
 commands:
 
   TooManyEntities:
-    aliases: [ tme ]
+    aliases: [tme]
     description: command interface
     permission: toomanyentities.toomanyentities
 

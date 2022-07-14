@@ -37,7 +37,7 @@ public final class SweepTask extends BukkitRunnable {
                 Monster monster = monsters.removeFirst();
 
                 if (!monster.isValid()) continue;
-                if (monster.getCustomName() != null) continue;
+                if (monster.customName() != null) continue;
                 if (!monster.isEmpty()) continue;
                 if (monster.getVehicle() != null) continue;
 

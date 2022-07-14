@@ -68,7 +68,7 @@ public final class TMECommand implements TabExecutor {
     }
 
     boolean scanCommand(CommandSender sender, String[] args) {
-        double paramRadius = 1.0;
+        double paramRadius = 10.0;
         int paramLimit = 100;
         EntityType paramType = null;
         boolean paramExclude = false;
