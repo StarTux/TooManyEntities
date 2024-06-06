@@ -3,7 +3,6 @@ package com.winthier.toomanyentities;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Random;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -12,6 +11,9 @@ import org.bukkit.entity.Monster;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.format.NamedTextColor.YELLOW;
 
 public final class SweepTask extends BukkitRunnable {
     private final TooManyEntitiesPlugin plugin;
@@ -75,11 +77,11 @@ public final class SweepTask extends BukkitRunnable {
     }
 
     public void init() {
-        sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - sweeping monsters...");
+        sender.sendMessage(text("Too Many Entities - sweeping monsters...", YELLOW));
         for (World world : plugin.getServer().getWorlds()) {
             Collection<Monster> e = world.getEntitiesByClass(Monster.class);
-            sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + world.getName()
-                               + " " + ChatColor.WHITE + e.size() + " monsters");
+            sender.sendMessage(textOfChildren(text(" " + world.getName() + " ", YELLOW),
+                                              text(e.size() + " monsters")));
             monsters.addAll(e);
         }
     }
@@ -89,7 +91,7 @@ public final class SweepTask extends BukkitRunnable {
     }
 
     public void stop() {
-        sender.sendMessage("" + ChatColor.YELLOW + "Done.");
+        sender.sendMessage(text("Done", YELLOW));
 
         try {
             cancel();

@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -14,6 +13,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import static com.cavetale.core.util.CamelCase.toCamelCase;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.format.NamedTextColor.RED;
+import static net.kyori.adventure.text.format.NamedTextColor.YELLOW;
 
 public final class TooManyEntitiesTask extends BukkitRunnable {
     TooManyEntitiesPlugin plugin;
@@ -72,15 +76,14 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
             if (exclude) {
                 s += ", excluding non-mobs";
             }
-            sender.sendMessage(ChatColor.YELLOW
-                               + "Too Many Entities - search result for " + s + ":");
+            sender.sendMessage(text("Too Many Entities - search result for " + s + ":", YELLOW));
             first = false;
         }
 
         for (int i = 0; i < checksPerTick; ++i) {
             if (entities.isEmpty()) {
                 if (!found) {
-                    sender.sendMessage(" " + ChatColor.WHITE + "Nothing found");
+                    sender.sendMessage(text("Nothing found", RED));
                 }
                 stop();
                 return;
@@ -132,11 +135,11 @@ public final class TooManyEntitiesTask extends BukkitRunnable {
                 loc = entity.getLocation(loc);
             }
         }
-        sender.sendMessage(" " + ChatColor.YELLOW + currentIndex++ + ") "
-                           + ChatColor.WHITE + list.size() + " found at "
-                           + ChatColor.GREEN + loc.getWorld().getName() + " "
-                           + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ()
-                           + " " + ChatColor.WHITE + "(" + Msg.niceEntityName(top) + ")");
+        sender.sendMessage(textOfChildren(text("" + (currentIndex++) + ") ", YELLOW),
+                                          text(list.size() + " found at "),
+                                          text(loc.getWorld().getName() + " ", YELLOW),
+                                          text(loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ()),
+                                          text(" (" + toCamelCase(" ", top) + ")")));
         if (player != null) {
             Session.Entry entry = new Session
                 .Entry(loc.getWorld().getName(),

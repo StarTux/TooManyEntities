@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -20,6 +19,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.format.NamedTextColor.RED;
+import static net.kyori.adventure.text.format.NamedTextColor.YELLOW;
 
 @RequiredArgsConstructor
 public final class TMECommand implements TabExecutor {
@@ -61,13 +64,13 @@ public final class TMECommand implements TabExecutor {
         case "entities": return entitiesCommand(sender, args);
         case "elytra": return elytraCommand(sender, args);
         default: {
-            sender.sendMessage("" + ChatColor.RED + "Unknown command: " + args[0]);
+            sender.sendMessage(text("Unknown command: " + args[0], RED));
             return true;
         }
         }
     }
 
-    boolean scanCommand(CommandSender sender, String[] args) {
+    private boolean scanCommand(CommandSender sender, String[] args) {
         double paramRadius = 10.0;
         int paramLimit = 100;
         EntityType paramType = null;
@@ -77,36 +80,26 @@ public final class TMECommand implements TabExecutor {
                 try {
                     paramRadius = Double.parseDouble(getParameterInput(args[i]));
                 } catch (NumberFormatException nfe) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Invalid input for radius, number expected: "
-                                       + getParameterInput(args[i]));
+                    sender.sendMessage(text("Invalid input for radius, number expected: " + getParameterInput(args[i]), RED));
                     return true;
                 }
                 if (paramRadius < 0.0) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Invalid input for radius, positive number expected: "
-                                       + getParameterInput(args[i]));
+                    sender.sendMessage(text("Invalid input for radius, positive number expected: " + getParameterInput(args[i]), RED));
                     return true;
                 }
                 if (paramRadius > 100.0) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Radius too large: "
-                                       + paramRadius);
+                    sender.sendMessage(text("Radius too large: " + paramRadius, RED));
                     return true;
                 }
             } else if (args[i].startsWith("l:")) {
                 try {
                     paramLimit = Integer.parseInt(getParameterInput(args[i]));
                 } catch (NumberFormatException nfe) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Invalid input for limit, number expected: "
-                                       + getParameterInput(args[i]));
+                    sender.sendMessage(text("Invalid input for limit, number expected: " + getParameterInput(args[i]), RED));
                     return true;
                 }
                 if (paramLimit < 1) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Invalid input for limit, positive number expected: "
-                                       + getParameterInput(args[i]));
+                    sender.sendMessage(text("Invalid input for limit, positive number expected: " + getParameterInput(args[i]), RED));
                     return true;
                 }
             } else if (args[i].trim().equals("-e")) {
@@ -116,19 +109,16 @@ public final class TMECommand implements TabExecutor {
                     paramType = EntityType.valueOf(getParameterInput(args[i])
                                                    .toUpperCase().replaceAll("-", "_"));
                 } catch (IllegalArgumentException iae) {
-                    sender.sendMessage(ChatColor.RED
-                                       + "Invalid input for type: " + getParameterInput(args[i]));
+                    sender.sendMessage(text("Invalid input for type: " + getParameterInput(args[i]), RED));
                     return true;
                 }
             } else {
-                sender.sendMessage(ChatColor.RED
-                                   + "Unknown parameter: " + getParameterInput(args[i]));
+                sender.sendMessage(text("Unknown parameter: " + getParameterInput(args[i]), RED));
                 return true;
             }
         }
         if (paramType != null && paramExclude) {
-            sender.sendMessage(ChatColor.RED
-                               + "Can't use exclude option and type parameter at the same time");
+            sender.sendMessage(text("Can't use exclude option and type parameter at the same time", RED));
             return true;
         }
         Player player = sender instanceof Player ? (Player) sender : null;
@@ -157,16 +147,16 @@ public final class TMECommand implements TabExecutor {
         if (index <= 0) return false;
         Session session = plugin.metadata.sessionOf(player);
         if (session.getEntries().size() <= index - 1) {
-            player.sendMessage(ChatColor.RED + "Index out of bounds.");
+            player.sendMessage(text("Index out of bounds.", RED));
             return true;
         }
         Location loc = session.getEntries().get(index - 1).getLocation(player);
         if (loc == null) {
-            player.sendMessage(ChatColor.RED + "Could not find location. Was the world unloaded?");
+            player.sendMessage(text("Could not find location. Was the world unloaded?", RED));
             return true;
         }
         player.teleport(loc);
-        player.sendMessage(ChatColor.YELLOW + "Teleported to finding #" + index);
+        player.sendMessage(text("Teleported to finding #" + index, YELLOW));
         return true;
     }
 
@@ -185,10 +175,10 @@ public final class TMECommand implements TabExecutor {
         List<String> list = map.keySet().stream()
             .sorted((a, b) -> Integer.compare(map.get(a), map.get(b)))
             .collect(Collectors.toList());
-        sender.sendMessage(ChatColor.YELLOW + "Listing " + list.size() + " worlds:");
+        sender.sendMessage(text("Listing " + list.size() + " worlds:", YELLOW));
         for (String w : list) {
-            sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + w + " "
-                               + ChatColor.WHITE + map.get(w) + " entities");
+            sender.sendMessage(textOfChildren(text(" " + w + " ", YELLOW),
+                                              text(map.get(w) + " entities")));
         }
         return true;
     }
@@ -204,17 +194,18 @@ public final class TMECommand implements TabExecutor {
                 radius = -1;
             }
             if (radius < 0) {
-                Msg.msg(sender, "&cRadius expected, got: %s", radiusArg);
+                sender.sendMessage(text("Radius expected, got: " + radiusArg, RED));
                 return true;
             }
             if (radius > 10) {
-                Msg.msg(sender, "&cRadius must be 10 or less");
+                sender.sendMessage(text("Radius must be 10 or less", RED));
                 return true;
             }
         }
-        Msg.msg(sender, "&eRanking entities around players. Chunk radius %d", radius);
+        sender.sendMessage(text("Ranking entities around players. Chunk radius " + radius, YELLOW));
         for (Ranking ranking : Ranking.rank(radius)) {
-            Msg.msg(sender, " &6%d&r %s", ranking.count, ranking.name);
+            sender.sendMessage(textOfChildren(text(ranking.count, YELLOW),
+                                              text(" " + ranking.name)));
         }
         return true;
     }
@@ -248,7 +239,7 @@ public final class TMECommand implements TabExecutor {
         if (args.length >= 2) {
             World world = Bukkit.getWorld(args[1]);
             if (world == null) {
-                sender.sendMessage(ChatColor.RED + "World not found: " + args[1]);
+                sender.sendMessage(text("World not found: " + args[1], RED));
                 return true;
             }
             worlds = Arrays.asList(world);
@@ -266,11 +257,11 @@ public final class TMECommand implements TabExecutor {
             .filter(et -> map.get(et) > 0)
             .sorted((a, b) -> Integer.compare(map.get(a), map.get(b)))
             .collect(Collectors.toList());
-        sender.sendMessage(ChatColor.YELLOW + "Listing " + entities.size() + " entity types:");
+        sender.sendMessage(text("Listing " + entities.size() + " entity types:", YELLOW));
         for (int i = 0; i < entities.size(); i += 1) {
             EntityType type = entities.get(i);
-            sender.sendMessage(" " + ChatColor.LIGHT_PURPLE + type.name().toLowerCase()
-                               + " " + ChatColor.WHITE + map.get(type) + " entities");
+            sender.sendMessage(textOfChildren(text(" " + type.name().toLowerCase() + " ", YELLOW),
+                                              text(map.get(type) + " entities")));
         }
         return true;
     }
@@ -308,33 +299,20 @@ public final class TMECommand implements TabExecutor {
     }
 
     void sendHelp(CommandSender sender) {
-        ChatColor aq = ChatColor.AQUA;
-        ChatColor rs = ChatColor.RESET;
-        sender.sendMessage("" + ChatColor.YELLOW + "Too Many Entities - commands:");
-        sender.sendMessage(" " + aq
-                           + "/tme sweep" + rs + " - sweeps all unneeded mobs");
-        sender.sendMessage(" " + aq
-                           + "/tme scan <parameters>");
-        sender.sendMessage(" " + aq
-                           + "/tme tp <index>");
-        sender.sendMessage(" " + aq
-                           + "/tme worlds" + rs + " - Count entities in worlds");
-        sender.sendMessage(" " + aq
-                           + "/tme entities [world]" + rs + " - Count entity types");
-        sender.sendMessage(" " + aq
-                           + "/tme players <radius>" + rs + " - Count mobs near players");
-        sender.sendMessage(" " + aq
-                           + "/tme elytra" + rs + " - See who's flying with elytra");
-        sender.sendMessage(" " + aq
-                           + "/tme nogoal <type>" + rs + " - Clear mob goals");
-        sender.sendMessage(" " + rs + "Parameters:");
-        sender.sendMessage(" " + aq + "r:" + ChatColor.GREEN + "<radius>"
-                           + rs + " - radius of the search (defaults to 1)");
-        sender.sendMessage(" " + aq + "l:" + ChatColor.GREEN + "<limit>"
-                           + rs + " - set entity limit (default 100)");
-        sender.sendMessage(" " + aq + "t:" + ChatColor.GREEN + "<type>"
-                           + rs + " - specify mob type");
-        sender.sendMessage(" " + aq + "-e" + rs + " - exclude non-mobs");
+        sender.sendMessage(text("Too Many Entities - commands:", YELLOW));
+        sender.sendMessage(text(" /tme sweep - sweeps all unneeded mobs", YELLOW));
+        sender.sendMessage(text(" /tme scan <parameters>", YELLOW));
+        sender.sendMessage(text(" /tme tp <index>", YELLOW));
+        sender.sendMessage(text(" /tme worlds - Count entities in worlds", YELLOW));
+        sender.sendMessage(text(" /tme entities [world] - Count entity types", YELLOW));
+        sender.sendMessage(text(" /tme players <radius> - Count mobs near players", YELLOW));
+        sender.sendMessage(text(" /tme elytra - See who's flying with elytra", YELLOW));
+        sender.sendMessage(text(" /tme nogoal <type> - Clear mob goals", YELLOW));
+        sender.sendMessage(text(" Parameters:", YELLOW));
+        sender.sendMessage(text(" r:<radius> - radius of the search (defaults to 1)", YELLOW));
+        sender.sendMessage(text(" l:<limit> - set entity limit (default 100)", YELLOW));
+        sender.sendMessage(text(" t:<type> - specify mob type", YELLOW));
+        sender.sendMessage(text(" -e - exclude non-mobs", YELLOW));
     }
 
     private String getParameterInput(String s) {
