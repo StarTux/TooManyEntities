@@ -2,7 +2,7 @@ main: com.winthier.toomanyentities.TooManyEntitiesPlugin
 name: TooManyEntities
 
 version: 0.1
-api-version: '26.1.2'
+api-version: '26.3'
 
 author: StarTux
 description: Scan for large clusters of entities
